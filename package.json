@@ -1,0 +1,18 @@
+{
+  "name": "chatbotsales",
+  "version": "1.0.0",
+  "description": "package json for the microsoft node chatbot sdk (js)",
+  "main": "index.js",
+  "scripts": {
+    "test": "help"
+  },
+  "author": "daniel stehlik",
+  "license": "ISC",
+  "dependencies": {
+    "botbuilder": "^3.8.3",
+    "btoa": "^1.1.2",
+    "jquery": "^3.2.1",
+    "restify": "^4.3.0",
+    "xmlhttprequest": "^1.8.0"
+  }
+}
