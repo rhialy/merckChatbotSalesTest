@@ -178,7 +178,7 @@ bot.dialog('searchDialog', [
         console.log("Name variable - First Name: " + capitalizeFirstLetter(specifiedName[0]) + " and Last Name: " + capitalizeFirstLetter(specifiedName[1]));
         //console.log("Test: " + String(session.dialogData.firstName));
         //var url = "https://demo-merck-serono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Employee_API?$filter=FIRST_NAME%20eq%20'" + name[0] + "'\n\n\n\n\n\n\n\n";
-        var url = "https://test-merck-serono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Individual_API?$filter=FIRST_NAME%20eq%20'" + capitalizeFirstLetter(specifiedName[0]) + "'%20and%20LAST_NAME%20eq%20'" + capitalizeFirstLetter(specifiedName[1]) + "'\n\n\n\n\n\n\n\n";
+        var url = "https://test-merckserono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Individual_API?$filter=FIRST_NAME%20eq%20'" + capitalizeFirstLetter(specifiedName[0]) + "'%20and%20LAST_NAME%20eq%20'" + capitalizeFirstLetter(specifiedName[1]) + "'\n\n\n\n\n\n\n\n";
         console.log("The URL is: " + url);
 
         client.get(String(url), function(response) {
@@ -206,7 +206,7 @@ bot.dialog("InstantSearch", [
 
       // This conditonal generates a hero card with basic information about the specified person
       if(results.response.toLowerCase().indexOf("information") != -1) {
-        var url = "https://test-merck-serono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Individual_API?$filter=FIRST_NAME%20eq%20'" + capitalizeFirstLetter(specifiedName[0]) + "'%20and%20LAST_NAME%20eq%20'" + capitalizeFirstLetter(specifiedName[1]) + "'\n\n\n\n\n\n\n\n";
+        var url = "https://test-merckserono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Individual_API?$filter=FIRST_NAME%20eq%20'" + capitalizeFirstLetter(specifiedName[0]) + "'%20and%20LAST_NAME%20eq%20'" + capitalizeFirstLetter(specifiedName[1]) + "'\n\n\n\n\n\n\n\n";
         client.get(String(url), function(response) {
 
             var counter = occurrences(String(response), "FIRST_NAME");
