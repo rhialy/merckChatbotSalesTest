@@ -226,13 +226,13 @@ bot.dialog("InstantSearch", [
       // this conditional should look for notes which correlate to the specified person
       if(results.response.toLowerCase().indexOf("notes") != -1) {
         // TODO: Query after individualapi -> then query after individual adress api -> then query after notes (if there is such a thing)
-        var url = "https://demo-merck-serono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Individual_API?$filter=FIRST_NAME%20eq%20'" + specifiedName[0] + "'%20and%20LAST_NAME%20eq%20'" + specifiedName[1] + "'\n\n\n\n\n\n\n\n";
+        var url = "https://test-merckserono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Individual_API?$filter=FIRST_NAME%20eq%20'" + specifiedName[0] + "'%20and%20LAST_NAME%20eq%20'" + specifiedName[1] + "'\n\n\n\n\n\n\n\n";
         session.endDialog("Here should be the note card, but it isn't finished yet, so I will end this Dialog now. :( Sorry for that!");
       }
       // this conditional should generate a link for google maps
       if(results.response.toLowerCase().indexOf("map") != -1) {
         // TODO: Query after individualapi -> then query after individual adress api -> use information to generate google maps link
-        var url = "https://demo-merck-serono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Individual_API?$filter=FIRST_NAME%20eq%20'" + capitalizeFirstLetter(specifiedName[0]) + "'%20and%20LAST_NAME%20eq%20'" + capitalizeFirstLetter(specifiedName[1]) + "'\n\n\n\n\n\n\n\n";
+        var url = "https://test-merckserono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Individual_API?$filter=FIRST_NAME%20eq%20'" + capitalizeFirstLetter(specifiedName[0]) + "'%20and%20LAST_NAME%20eq%20'" + capitalizeFirstLetter(specifiedName[1]) + "'\n\n\n\n\n\n\n\n";
 
         var counter;
         var individualIdentifier = [];
@@ -246,7 +246,7 @@ bot.dialog("InstantSearch", [
               individualIdentifier[i] = getResult("INDIVIDUAL_IDENTIFIER", responseArr[i]);
               console.log("Individiual Identifier No." + i + " is " + individualIdentifier[i]);
             }
-            url = "https://demo-merck-serono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Individual_API(" + individualIdentifier[0] + ")/IndividualAddress_API";
+            url = "https://test-merckserono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Individual_API(" + individualIdentifier[0] + ")/IndividualAddress_API";
 
             // For testing purposes this only gives out the first entry of the name you searched for
             // as for not pressuring the database too much and we dont need this for prototyping purposes
@@ -261,7 +261,7 @@ bot.dialog("InstantSearch", [
               // Here we are finall looking up the location of the specified person
               // we simply take the street, city and country and put it in a google maps query
               // which is as simple as it gets
-              url = "https://demo-merck-serono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Address_API(" + addressIdentifier + ")";
+              url = "https://test-merckserono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Address_API(" + addressIdentifier + ")";
               var street;
               var city;
               var postCode;
@@ -374,7 +374,7 @@ var HttpClient = function() {
         }
         anHttpRequest.open( "GET", aUrl, true );
         anHttpRequest.setRequestHeader("content-type", "application/json");
-        anHttpRequest.setRequestHeader("Authorization", "Basic YWRtaW5fcWltc2g6UEA1NXdvcmQyMDE3", "");
+        anHttpRequest.setRequestHeader("Authorization", "Basic aDMwMjYzOk1lcmNrMjAxNyE=", "");
         anHttpRequest.responseType = "json";
         anHttpRequest.send( null );
     }
