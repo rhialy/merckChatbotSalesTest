@@ -246,7 +246,7 @@ bot.dialog("InstantSearch", [
               individualIdentifier[i] = getResult("INDIVIDUAL_IDENTIFIER", responseArr[i]);
               console.log("Individiual Identifier No." + i + " is " + individualIdentifier[i]);
             }
-            url = "https://test-merckserono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Individual_API(" + individualIdentifier[0] + ")/IndividualAddress_API";
+            url = "https://test-merckserono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Individual_API(" + individualIdentifier[0] + ")/IndividualAffiliation_API";
 
             // For testing purposes this only gives out the first entry of the name you searched for
             // as for not pressuring the database too much and we dont need this for prototyping purposes
