@@ -12,14 +12,15 @@ server.listen(process.env.port || process.env.PORT || 3978, function () {
 
 // Create chat connector for communicating with the Bot Framework Service
 var connector = new builder.ChatConnector({
+   /*
     // Decomment this if you push the bot to the git-repo and want to use it online
     appId: "616adb88-3f1e-4be4-83bd-6fa27148af7a", // 616adb88-3f1e-4be4-83bd-6fa27148af7a // process.env.MICROSOFT_APP_ID
     appPassword: "zDXSaZWHFBAu3sp8nVpq1Ok" // zDXSaZWHFBAu3sp8nVpq1Ok // process.env.MICROSOFT_APP_PASSWORD
-    /*
+    */
     // Decomment this for local testing purposes
     appId: process.env.MICROSOFT_APP_ID,
     appPassword: process.env.MICROSOFT_APP_PASSWORD
-    */
+
 });
 
 // Listen for messages from users
@@ -206,22 +207,87 @@ bot.dialog("InstantSearch", [
 
       // This conditonal generates a hero card with basic information about the specified person
       if(results.response.toLowerCase().indexOf("information") != -1) {
-        var url = "https://test-merckserono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Individual_API?$filter=FIRST_NAME%20eq%20'" + capitalizeFirstLetter(specifiedName[0]) + "'%20and%20LAST_NAME%20eq%20'" + capitalizeFirstLetter(specifiedName[1]) + "'\n\n\n\n\n\n\n\n";
+        // The first step - looking for the individual
+        var url = "https://test-merckserono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Individual_API?$filter=FIRST_NAME%20eq%20'" + capitalizeFirstLetter(specifiedName[0]) + "'%20and%20LAST_NAME%20eq%20'" + capitalizeFirstLetter(specifiedName[1]) + "'&$select=INDIVIDUAL_IDENTIFIER";
         client.get(String(url), function(response) {
 
-            var counter = occurrences(String(response), "FIRST_NAME");
-
+            console.log("Test " + String(response));
+            // routine functions for looking through the output string
+            var counter = occurrences(String(response), "INDIVIDUAL_IDENTIFIER");
             var responseArr = String(response).split("},{");
+            var individualIdentifier = [];
 
-            var msg = new builder.Message(session);
-            msg.attachmentLayout(builder.AttachmentLayout.carousel)
-            msg.attachments([
-              createHeroInfoCard(session,responseArr[0]),
-              createHeroInfoCard(session,responseArr[1])
-            ])
-            session.send(msg);
-            session.endDialog("Here are your results!");
+            var doubleDownCounter = 0;
+            var iteration;
+            // iteration through the string and looking for our identifiers
+            for(var i = 0; i < counter; i++) {
+              if(counter > 2) {
+                console.log("more")
+                var tempString = String(responseArr[i]).split("INDIVIDUAL_IDENTIFIER");
+                console.log("Temp string is " + String(tempString));
+              } else {
+                console.log("less")
+                var thenum = String(response).replace(/\D/g,'');
+                thenum = thenum.substring(1);
+                /*var tempString = String(response).split("INDIVIDUAL_IDENTIFIER");
+                console.log("Temp string 2 is " + String(tempString[2]));
+                tempString = tempString[2].split(":");
+                tempString = tempString[1].split("}");*/
+                individualIdentifier[i] = thenum;
+              }
+              if(i > 0) {
+                if(individualIdentifier[i] == individualIdentifier[i-1]) {
+                  doubleDownCounter = doubleDownCounter + 1;
+                }
+              }
+              //individualIdentifier[i] = getResult("INDIVIDUAL_IDENTIFIER", actualString[1]);
+              console.log("Individiual Identifier No." + i + " is " + individualIdentifier[i]);
+            }
+            // the next step has to be iterated through in case there are multiple persons found
+            // were looking now for the address identifier, organization identifier and the specific workplace name
+            iteration = individualIdentifier.length - doubleDownCounter;
+            console.log("Iterations: " + iteration);
+            for(var i = 0; i < iteration; i++) {
+              url = "https://test-merckserono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Individual_API(" + individualIdentifier[i] + ")" + "/IndividualAffiliation_API";
+              console.log("new url is: " + url);
+              client2.get(String(url), function(response) {
+                console.log("next odata request for affiliation.");
+                //var counter = occurences(String(response), "ADDRESS_IDENTIFIER");
+                var addressIdentifier = [];
+                var organizationIdentifier = [];
+                var specificWorkplace = [];
+                addressIdentifier[i] = getResult("ADDRESS_IDENTIFIER", response);
+                console.log("Address Identifier is: " + addressIdentifier[i]);
+                specificWorkplace[i] = getResult("AFFILIATION_NAME", response);
+                organizationIdentifier[i] = getResult("ORGANIZATION_IDENTIFIER", response);
+                url = "https://test-merckserono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Workplace_API(" + organizationIdentifier[i] + ")/OrganizationPhoneMedia_API";
+                client3.get(String(url), function(response) {
+                  var responseArr = String(response).split("},{");
+                  var phoneNumber = [];
+                  phoneNumber[i] = getResult("PHONE_NUMBER", responseArr[1]);
+                  url = "https://test-merckserono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Address_API(" + addressIdentifier[i] + ")";
+                  console.log("address url is: " + url);
+                  client4.get(String(url), function(response) {
+                    var actualAddress = [];
+                    street = getResult("LINE_1_ADDRESS", response);
+                    city = getResult("VILLAGE_LABEL", response);
+                    postCode = getResult("POST_CODE", response)
+                    countryCode = getResult("COUNTRY_CODE", response);
+                    actualAddress[i] = street + ", " + postCode + " " + city + " in " + countryCode;
+
+                    var msg = new builder.Message(session);
+                    msg.attachmentLayout(builder.AttachmentLayout.carousel)
+                    msg.attachments([
+                      createHeroInfoCard(session, specificWorkplace[i], actualAddress[i], phoneNumber[i])
+                    ])
+                    session.send(msg);
+
+                  })
+                })
+              })
+            }
         });
+        session.endDialog("Here are your results!");
       }
       // this conditional should look for notes which correlate to the specified person
       if(results.response.toLowerCase().indexOf("notes") != -1) {
@@ -231,57 +297,77 @@ bot.dialog("InstantSearch", [
       }
       // this conditional should generate a link for google maps
       if(results.response.toLowerCase().indexOf("map") != -1) {
-        // TODO: Query after individualapi -> then query after individual adress api -> use information to generate google maps link
-        var url = "https://test-merckserono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Individual_API?$filter=FIRST_NAME%20eq%20'" + capitalizeFirstLetter(specifiedName[0]) + "'%20and%20LAST_NAME%20eq%20'" + capitalizeFirstLetter(specifiedName[1]) + "'\n\n\n\n\n\n\n\n";
-
-        var counter;
-        var individualIdentifier = [];
-
+        // The first step - looking for the individual
+        var url = "https://test-merckserono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Individual_API?$filter=FIRST_NAME%20eq%20'" + capitalizeFirstLetter(specifiedName[0]) + "'%20and%20LAST_NAME%20eq%20'" + capitalizeFirstLetter(specifiedName[1]) + "'&$select=INDIVIDUAL_IDENTIFIER";
         client.get(String(url), function(response) {
 
-            counter = occurrences(String(response), "FIRST_NAME");
-
+            console.log("Test " + String(response));
+            // routine functions for looking through the output string
+            var counter = occurrences(String(response), "INDIVIDUAL_IDENTIFIER");
             var responseArr = String(response).split("},{");
+            var individualIdentifier = [];
+
+            var doubleDownCounter = 0;
+            var iteration;
+            // iteration through the string and looking for our identifiers
             for(var i = 0; i < counter; i++) {
-              individualIdentifier[i] = getResult("INDIVIDUAL_IDENTIFIER", responseArr[i]);
+              if(counter > 2) {
+                console.log("more")
+                var tempString = String(responseArr[i]).split("INDIVIDUAL_IDENTIFIER");
+                console.log("Temp string is " + String(tempString));
+              } else {
+                console.log("less")
+                var thenum = String(response).replace(/\D/g,'');
+                thenum = thenum.substring(1);
+                /*var tempString = String(response).split("INDIVIDUAL_IDENTIFIER");
+                console.log("Temp string 2 is " + String(tempString[2]));
+                tempString = tempString[2].split(":");
+                tempString = tempString[1].split("}");*/
+                individualIdentifier[i] = thenum;
+              }
+              if(i > 0) {
+                if(individualIdentifier[i] == individualIdentifier[i-1]) {
+                  doubleDownCounter = doubleDownCounter + 1;
+                }
+              }
+              //individualIdentifier[i] = getResult("INDIVIDUAL_IDENTIFIER", actualString[1]);
               console.log("Individiual Identifier No." + i + " is " + individualIdentifier[i]);
             }
-            url = "https://test-merckserono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Individual_API(" + individualIdentifier[0] + ")/IndividualAffiliation_API";
+            // the next step has to be iterated through in case there are multiple persons found
+            // were looking now for the address identifier, organization identifier and the specific workplace name
+            iteration = individualIdentifier.length - doubleDownCounter;
+            console.log("Iterations: " + iteration);
+            for(var i = 0; i < iteration; i++) {
+              url = "https://test-merckserono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Individual_API(" + individualIdentifier[i] + ")" + "/IndividualAffiliation_API";
+              console.log("new url is: " + url);
+              client2.get(String(url), function(response) {
+                console.log("next odata request for affiliation.");
+                //var counter = occurences(String(response), "ADDRESS_IDENTIFIER");
+                var addressIdentifier = [];
+                var specificWorkplace = [];
+                addressIdentifier[i] = getResult("ADDRESS_IDENTIFIER", response);
+                specificWorkplace[i] = getResult("AFFILIATION_NAME", response);
+                url = "https://test-merckserono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Address_API(" + addressIdentifier[i] + ")";
+                client3.get(String(url), function(response) {
+                  street = getResult("LINE_1_ADDRESS", response);
+                  city = getResult("VILLAGE_LABEL", response);
+                  postCode = getResult("POST_CODE", response)
+                  countryCode = getResult("COUNTRY_CODE", response);
 
-            // For testing purposes this only gives out the first entry of the name you searched for
-            // as for not pressuring the database too much and we dont need this for prototyping purposes
-            // In this step we get the addressIdentifier which we then need to get the specified entry
-            // in the adress_api where we can get the actual location we are looking for
-            console.log("new url is: " + url);
-            var addressIdentifier
-            client2.get(String(url), function(response) {
-              addressIdentifier = getResult("ADDRESS_IDENTIFIER", response);
-              console.log("AdressIdentifier: " + addressIdentifier);
+                  var mapsUrl = "https://www.google.com/maps?q=" + street + ", " + postCode + " " + city + ", " + countryCode;
 
-              // Here we are finall looking up the location of the specified person
-              // we simply take the street, city and country and put it in a google maps query
-              // which is as simple as it gets
-              url = "https://test-merckserono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Address_API(" + addressIdentifier + ")";
-              var street;
-              var city;
-              var postCode;
-              var countryCode;
-              client3.get(String(url), function(response) {
-                street = getResult("LINE_1_ADDRESS", response);
-                city = getResult("VILLAGE_LABEL", response);
-                countryCode = getResult("COUNTRY_CODE", response);
+                  var msg = new builder.Message(session);
+                  msg.attachmentLayout(builder.AttachmentLayout.carousel)
+                  msg.attachments([
+                    createHeroMapCard(session, mapsUrl, specificWorkplace[i])
+                  ])
+                  session.send(msg);
 
-                url = "http://maps.google.com/?q=" + street + "," + city + "," + countryCode;
-                var msg = new builder.Message(session);
-                msg.attachmentLayout(builder.AttachmentLayout.carousel)
-                msg.attachments([
-                  createHeroMapCard(session,url),
-                ])
-                session.endDialog(msg);
-                });
-            });
+                })
+              })
+            }
         });
-
+        session.endDialog("");
 
       }
 
@@ -290,11 +376,11 @@ bot.dialog("InstantSearch", [
 ]).triggerAction({ matches: 'InstantSearch' });
 
 // function to create the hero Cards - containing basic information -> for the "information conditonal"
-function createHeroInfoCard(session, response) {
+function createHeroInfoCard(session, jobTitle, address, phoneNumber) {
     return new builder.HeroCard(session)
-      .title(getResult("FIRST_NAME", response) + " " + getResult("LAST_NAME", response))
-      .subtitle('Birthday: ' + getResult("BIRTH_DAY", response) + "-" + getResult("BIRTH_YEAR_NUMBER", response))
-      .text('Preferred Language: ' + getResult("LNG_EID_CODE", response) + "\n" + "Likes: " + getResult("LIKES", response) + "\n" + "Dislikes: " + getResult("DISLIKES", response))
+      .title(capitalizeFirstLetter(specifiedName[0]) + " " + capitalizeFirstLetter(specifiedName[1]))
+      .subtitle('Job: ' + jobTitle)
+      .text("Address: " + address + " \nPhone Number: " + phoneNumber)
       .images([
           //builder.CardImage.create(session, 'https://sec.ch9.ms/ch9/7ff5/e07cfef0-aa3b-40bb-9baa-7c9ef8ff7ff5/buildreactionbotframework_960.jpg')
         ])
@@ -304,10 +390,10 @@ function createHeroInfoCard(session, response) {
 }
 
 // function to create the hero Cards - containing link to google maps -> for the "maps conditional"
-function createHeroMapCard(session, url) {
+function createHeroMapCard(session, url, jobTitle) {
     return new builder.HeroCard(session)
-      .title("Maps Card")
-      .subtitle(specifiedName[0] + " " + specifiedName[1])
+      .title(capitalizeFirstLetter(specifiedName[0]) + " " + capitalizeFirstLetter(specifiedName[1]))
+      .subtitle('Job: ' + jobTitle)
       .text("Click the Link to show the destination in your Maps Application")
       .images([
           //builder.CardImage.create(session, 'https://sec.ch9.ms/ch9/7ff5/e07cfef0-aa3b-40bb-9baa-7c9ef8ff7ff5/buildreactionbotframework_960.jpg')
@@ -385,6 +471,7 @@ var HttpClient = function() {
 var client = new HttpClient();
 var client2 = new HttpClient();
 var client3 = new HttpClient();
+var client4 = new HttpClient();
 var rep;
 /*client.get("https://demo-merck-serono-eu-mi.emea.crm.cegedim.com/MobileIntelligence/v1/Employee_API?$filter=FIRST_NAME%20eq%20'Mark'\n\n\n\n\n\n\n\n", function(response) {
     console.log("Response: " + response);
