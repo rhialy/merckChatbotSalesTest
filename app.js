@@ -12,15 +12,15 @@ server.listen(process.env.port || process.env.PORT || 3978, function () {
 
 // Create chat connector for communicating with the Bot Framework Service
 var connector = new builder.ChatConnector({
-   /*
+   
     // Decomment this if you push the bot to the git-repo and want to use it online
     appId: "616adb88-3f1e-4be4-83bd-6fa27148af7a", // 616adb88-3f1e-4be4-83bd-6fa27148af7a // process.env.MICROSOFT_APP_ID
     appPassword: "zDXSaZWHFBAu3sp8nVpq1Ok" // zDXSaZWHFBAu3sp8nVpq1Ok // process.env.MICROSOFT_APP_PASSWORD
-    */
+    /*
     // Decomment this for local testing purposes
     appId: process.env.MICROSOFT_APP_ID,
     appPassword: process.env.MICROSOFT_APP_PASSWORD
-
+    */
 });
 
 // Listen for messages from users
